@@ -16,25 +16,31 @@ module.exports = function(app) {
   var jsonParser = bodyParser.json();
   app.options('/api/*', cors(corsOptions))
 
+  handleError = function(url, err, res) {
+    res.status(500).send(`Error calling ${url}: ${err}`);
+  }
+
   app.post('/api/getUsers', cors(corsOptions), function(req,res){
-    User.find({},(err,users)=>{
-      if(err) {console.log("saveQuestionAnswer error!: ",err)}      
-      res.send(users);
-    })
+    User.find({},(err,users)=>{      
+      if(err) handleError('/api/getUsers', err, res);
+      else res.status(200).send(users);
+    })   
+
   });
 
   app.post('/api/getQuestions', cors(corsOptions), function(req,res){
-    Question.find({},(err,questions)=>{
-      if(err) {console.log("getQuestions error!: ",err)}
-      res.send(questions);
-    })
+    Question.find({},(err,questions)=>{      
+      if(err) handleError('/api/getQuestions', err, res);
+      else res.status(200).send(questions);
+    })    
+
   });
 
-  app.post('/api/saveQuestionAnswer', cors(corsOptions), jsonParser, function(req,res){    
+  app.post('/api/saveQuestionAnswer', cors(corsOptions), jsonParser, function(req,response){    
     var data = req.body;    
 
-    User.findById(data.authedUser,(err,user)=>{
-      if(err) {console.log("saveQuestionAnswer, find user error!: ",err)}
+    User.findById(data.authedUser,(err,user)=>{      
+      if(err) { handleError('/api/saveQuestionAnswer', err, response); return;}
 
       user.answers = {
         ...user.answers,
@@ -43,15 +49,17 @@ module.exports = function(app) {
 
       user.save().then(()=>{
 
-        Question.findById(data.qid,(err,question)=>{
-          if(err) {console.log("saveQuestionAnswer, find question error!: ",err)}
+        Question.findById(data.qid,(err,question)=>{          
+          if(err) { handleError('/api/saveQuestion', err, response); return;}
 
           question[data.answer].votes.push(data.authedUser);
-          question.save((err,res)=>{console.log("Saved Question.");})
-          res.send(true);
+          question.save((err,res)=>{
+            if(err) { handleError('/api/saveQuestion', err, response); return; }
+            response.sendStatus(200);  
+          })
+            
         })
-      });    
-
+      });
     })
   });
 
@@ -59,21 +67,19 @@ module.exports = function(app) {
     var data = req.body;    
 
     var newQuestion = new Question(data.question);
-    newQuestion.save((err,savedNewQuestion)=>{
-      if(err) {console.log("saveQuestion, save question error!: ",err)}
+    newQuestion.save((err,savedNewQuestion)=>{      
+      if(err) { handleError('/api/saveQuestion', err, response); return; }
 
-      User.findById(data.authedUser, (err, newUser)=>{
-        if(err) {console.log("saveQuestion, find user error!: ",err)}
+      User.findById(data.authedUser, (err, newUser)=>{        
+        if(err) { handleError('/api/saveQuestion', err, response);  return;}
         
         newUser.questions = newUser.questions.concat(savedNewQuestion._id);        
-        newUser.save((err,res)=>{
-          if(err) {console.log("saveQuestion, save user error!: ",err)}
-          response.send(savedNewQuestion);
+        newUser.save((err,res)=>{          
+          if(err) { handleError('/api/saveQuestion', err, response); return; }
+          response.status(200).send(savedNewQuestion);
         })
       })
-
     })
   });
-
 
 }
