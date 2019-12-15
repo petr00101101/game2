@@ -6,7 +6,9 @@ var userSchema = new Schema({
   name: String,
   avatarURL: String,
   answers: Schema.Types.Mixed,
-  questions: [String]
+  questions: [String],
+  username: String,
+  password: String
 }, { collection: 'user' });
 
 var questionSchema = new Schema({

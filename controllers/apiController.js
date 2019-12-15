@@ -2,6 +2,7 @@ var models = require('../models');
 var bodyParser = require('body-parser');
 var cors = require('cors')
 var configValues = require('../config/config.json')
+var getUserDetails = require('./userDetails.js')
 
 var User = models.User;
 var Question = models.Question;
@@ -19,6 +20,34 @@ module.exports = function(app) {
   handleError = function(url, err, res) {
     res.status(500).send(`Error calling ${url}: ${err}`);
   }
+
+  app.post('/api/login', cors(corsOptions), jsonParser, function(req,res) {
+    let username = req.body.username;
+    let pwd = req.body.password;
+    let userDetails = getUserDetails(username);
+    if (userDetails) {
+      let { password } = userDetails;
+      if (pwd === password) {
+        res.data = userDetails;
+        
+      } 
+      else {
+        res.statusCode = 400;
+        res.data = {
+          status: false,
+          error: 'Invalid Password'
+        };
+      };
+    } else {
+      res.statusCode = 400;
+      res.data = {
+        status: false,
+        error: 'Invalid Username'
+      };
+    }
+  // next();
+  });
+
 
   app.post('/api/getUsers', cors(corsOptions), function(req,res){
     User.find({},(err,users)=>{      
