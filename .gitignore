@@ -2,5 +2,5 @@
 config.json
 config.js
 node_modules
-assets
-scripts
+config/scripts
+genPassHash.js
